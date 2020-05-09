@@ -54,6 +54,14 @@ function m.generate(prj)
 	_p(')')
 	
 	for cfg in project.eachconfig(prj) do
+		-- dependencies
+		_p('add_dependencies("%s"', prj.name)
+		local dependencies = project.getdependencies(prj)
+		for _, dependency in ipairs(dependencies) do
+			_p(1, '"%s"', dependency.name)
+		end
+		_p(')')
+
 		-- output dir
 		_p('set_target_properties("%s" PROPERTIES', prj.name)
 		_p(1, 'ARCHIVE_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
@@ -86,7 +94,12 @@ function m.generate(prj)
 		local toolset = m.getcompiler(cfg)
 		_p('target_link_libraries("%s" PUBLIC', prj.name)
 		for _, link in ipairs(toolset.getlinks(cfg)) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, link)
+			-- CMake can't handle relative paths
+			if link:find('/') ~= nil then
+				_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, path.getabsolute(prj.location .. '/' .. link))
+			else
+				_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, link)
+			end
 		end
 		_p(')')
 
