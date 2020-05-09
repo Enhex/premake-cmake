@@ -54,6 +54,13 @@ function m.generate(prj)
 	_p(')')
 	
 	for cfg in project.eachconfig(prj) do
+		-- output dir
+		_p('set_target_properties("%s" PROPERTIES', prj.name)
+		_p(1, 'ARCHIVE_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(1, 'LIBRARY_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(1, 'RUNTIME_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(')')
+
 		-- include dirs
 		_p('target_include_directories("%s" PUBLIC', prj.name)
 		for _, includedir in ipairs(cfg.includedirs) do
