@@ -23,7 +23,7 @@ local m = cmake.workspace
 --
 function m.generate(wks)
 	p.utf8()
-	p.w('cmake_minimum_required(VERSION 3.0.2)')
+	p.w('cmake_minimum_required(VERSION 3.16)')
 	p.w('project("%s")', wks.name)
 
 	--

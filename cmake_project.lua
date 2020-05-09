@@ -43,29 +43,39 @@ end
 function m.generate(prj)
 	p.utf8()
 
-	_p('add_executable("%s"', prj.name)
+	if prj.kind == 'StaticLib' then
+		_p('add_library("%s"', prj.name)
+	elseif prj.kind == 'SharedLib' then
+		_p('add_library("%s" SHARED', prj.name)
+	else
+		_p('add_executable("%s"', prj.name)
+	end
 	m.files(prj)
 	_p(')')
 	
 	for cfg in project.eachconfig(prj) do
+		-- include dirs
 		_p('target_include_directories("%s" PUBLIC', prj.name)
 		for _, includedir in ipairs(cfg.includedirs) do
-			_x(1, '$<$<CONFIG:%s>:%s>', cfg.name, project.getrelative(cfg.project, includedir))
+			_x(1, '$<$<CONFIG:%s>:%s>', cfg.name, includedir)
 		end
 		_p(')')
-	
+		
+		-- defines
 		_p('target_compile_definitions("%s" PUBLIC', prj.name)
 		for _, define in ipairs(cfg.defines) do
 			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, p.esc(define):gsub(' ', '\\ '))
 		end
 		_p(')')
 
+		-- lib dirs
 		_p('target_link_directories("%s" PUBLIC', prj.name)
 		for _, libdir in ipairs(cfg.libdirs) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, project.getrelative(cfg.project, libdir))
+			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, libdir)
 		end
 		_p(')')
 
+		-- libs
 		local toolset = m.getcompiler(cfg)
 		_p('target_link_libraries("%s" PUBLIC', prj.name)
 		for _, link in ipairs(toolset.getlinks(cfg)) do
@@ -73,6 +83,17 @@ function m.generate(prj)
 		end
 		_p(')')
 
+		-- link options
+		_p('target_link_options("%s" PUBLIC', prj.name)
+		for _, option in ipairs(cfg.linkoptions) do
+			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, option)
+		end
+		for _, flag in ipairs(toolset.getldflags(cfg)) do
+			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, flag)
+		end
+		_p(')')
+
+		-- C++ standard
 		-- only need to configure it specified
 		if cfg.cppdialect ~= '' or cfg.cppdialect == 'Default' then
 			local standard = {}
@@ -98,6 +119,38 @@ function m.generate(prj)
 			_p(2, 'CXX_STANDARD_REQUIRED YES')
 			_p(2, 'CXX_EXTENSIONS %s', extentions)
 			_p(1, ')')
+			_p('endif()')
+		end
+
+		-- precompiled headers
+		-- copied from gmake2_cpp.lua
+		if not cfg.flags.NoPCH and cfg.pchheader then
+			local pch = cfg.pchheader
+			local found = false
+
+			-- test locally in the project folder first (this is the most likely location)
+			local testname = path.join(cfg.project.basedir, pch)
+			if os.isfile(testname) then
+				pch = project.getrelative(cfg.project, testname)
+				found = true
+			else
+				-- else scan in all include dirs.
+				for _, incdir in ipairs(cfg.includedirs) do
+					testname = path.join(incdir, pch)
+					if os.isfile(testname) then
+						pch = project.getrelative(cfg.project, testname)
+						found = true
+						break
+					end
+				end
+			end
+
+			if not found then
+				pch = project.getrelative(cfg.project, path.getabsolute(pch))
+			end
+
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cfg.name)
+			_p('target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
 			_p('endif()')
 		end
 	end
