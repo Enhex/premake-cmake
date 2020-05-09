@@ -55,12 +55,14 @@ function m.generate(prj)
 	
 	for cfg in project.eachconfig(prj) do
 		-- dependencies
-		_p('add_dependencies("%s"', prj.name)
 		local dependencies = project.getdependencies(prj)
-		for _, dependency in ipairs(dependencies) do
-			_p(1, '"%s"', dependency.name)
+		if #dependencies > 0 then
+			_p('add_dependencies("%s"', prj.name)
+			for _, dependency in ipairs(dependencies) do
+				_p(1, '"%s"', dependency.name)
+			end
+			_p(')')
 		end
-		_p(')')
 
 		-- output dir
 		_p('set_target_properties("%s" PROPERTIES', prj.name)
