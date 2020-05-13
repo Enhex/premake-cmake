@@ -135,11 +135,17 @@ function m.generate(prj)
 				extentions = 'NO'
 			end
 			
+			local pic = 'False'
+			if cfg.pic == 'On' then
+				pic = 'True'
+			end
+
 			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cfg.name)
 			_p(1, 'set_target_properties("%s" PROPERTIES', prj.name)
 			_p(2, 'CXX_STANDARD %s', standard[cfg.cppdialect])
 			_p(2, 'CXX_STANDARD_REQUIRED YES')
 			_p(2, 'CXX_EXTENSIONS %s', extentions)
+			_p(2, 'POSITION_INDEPENDENT_CODE %s', pic)
 			_p(1, ')')
 			_p('endif()')
 		end
