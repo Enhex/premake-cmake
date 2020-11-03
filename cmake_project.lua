@@ -59,22 +59,25 @@ function m.generate(prj)
 	_p(')')
 
 	for cfg in project.eachconfig(prj) do
+		_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 		-- dependencies
 		local dependencies = project.getdependencies(prj)
 		if #dependencies > 0 then
-			_p('add_dependencies("%s"', prj.name)
+			_p(1, 'add_dependencies("%s"', prj.name)
 			for _, dependency in ipairs(dependencies) do
-				_p(1, '"%s"', dependency.name)
+				_p(2, '"%s"', dependency.name)
 			end
-			_p(')')
+			_p(1,')')
 		end
 
 		-- output dir
-		_p('set_target_properties("%s" PROPERTIES', prj.name)
-		_p(1, 'ARCHIVE_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
-		_p(1, 'LIBRARY_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
-		_p(1, 'RUNTIME_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
-		_p(')')
+		_p(1,'set_target_properties("%s" PROPERTIES', prj.name)
+		_p(2, 'OUTPUT_NAME "%s"', cfg.buildtarget.basename)
+		_p(2, 'ARCHIVE_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(2, 'LIBRARY_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(2, 'RUNTIME_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(1,')')
+		_p('endif()')
 
 		-- include dirs
 		_p('target_include_directories("%s" PRIVATE', prj.name)
