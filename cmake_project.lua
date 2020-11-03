@@ -57,7 +57,7 @@ function m.generate(prj)
 	end
 	m.files(prj)
 	_p(')')
-	
+
 	for cfg in project.eachconfig(prj) do
 		-- dependencies
 		local dependencies = project.getdependencies(prj)
@@ -77,21 +77,21 @@ function m.generate(prj)
 		_p(')')
 
 		-- include dirs
-		_p('target_include_directories("%s" PUBLIC', prj.name)
+		_p('target_include_directories("%s" PRIVATE', prj.name)
 		for _, includedir in ipairs(cfg.includedirs) do
 			_x(1, '$<$<CONFIG:%s>:%s>', cfg.name, includedir)
 		end
 		_p(')')
 		
 		-- defines
-		_p('target_compile_definitions("%s" PUBLIC', prj.name)
+		_p('target_compile_definitions("%s" PRIVATE', prj.name)
 		for _, define in ipairs(cfg.defines) do
 			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, p.esc(define):gsub(' ', '\\ '))
 		end
 		_p(')')
 
 		-- lib dirs
-		_p('target_link_directories("%s" PUBLIC', prj.name)
+		_p('target_link_directories("%s" PRIVATE', prj.name)
 		for _, libdir in ipairs(cfg.libdirs) do
 			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, libdir)
 		end
@@ -99,7 +99,7 @@ function m.generate(prj)
 
 		-- libs
 		local toolset = m.getcompiler(cfg)
-		_p('target_link_libraries("%s" PUBLIC', prj.name)
+		_p('target_link_libraries("%s" PRIVATE', prj.name)
 		for _, link in ipairs(toolset.getlinks(cfg)) do
 			-- CMake can't handle relative paths
 			if link:find('/') ~= nil then
@@ -111,7 +111,7 @@ function m.generate(prj)
 		_p(')')
 
 		-- link options
-		_p('target_link_options("%s" PUBLIC', prj.name)
+		_p('target_link_options("%s" PRIVATE', prj.name)
 		for _, option in ipairs(cfg.linkoptions) do
 			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, option)
 		end
