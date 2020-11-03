@@ -22,7 +22,8 @@ local m = cmake.project
 
 
 function m.getcompiler(cfg)
-	local toolset = p.tools[_OPTIONS.cc or cfg.toolset or p.CLANG]
+	local default = iif(cfg.system == p.WINDOWS, "msc", "clang")
+	local toolset = p.tools[_OPTIONS.cc or cfg.toolset or default]
 	if not toolset then
 		error("Invalid toolset '" + (_OPTIONS.cc or cfg.toolset) + "'")
 	end
@@ -59,6 +60,8 @@ function m.generate(prj)
 	_p(')')
 
 	for cfg in project.eachconfig(prj) do
+		local toolset = m.getcompiler(cfg)
+		local isclangorgcc = toolset == p.tools.clang or toolset == p.tools.gcc
 		_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 		-- dependencies
 		local dependencies = project.getdependencies(prj)
@@ -85,7 +88,7 @@ function m.generate(prj)
 			_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
 		end
 		_p(')')
-		
+
 		-- defines
 		_p('target_compile_definitions("%s" PRIVATE', prj.name)
 		for _, define in ipairs(cfg.defines) do
@@ -101,15 +104,25 @@ function m.generate(prj)
 		_p(')')
 
 		-- libs
-		local toolset = m.getcompiler(cfg)
-		_p('target_link_libraries("%s" PRIVATE', prj.name)
-		for _, link in ipairs(toolset.getlinks(cfg)) do
-			-- CMake can't handle relative paths
-			if link:find('/') ~= nil then
-				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), path.getabsolute(prj.location .. '/' .. link))
-			else
-				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
-			end
+		_p('target_link_libraries("%s"', prj.name)
+		-- Do not use toolset here as cmake needs to resolve dependency chains
+		local uselinkgroups = isclangorgcc and cfg.linkgroups == p.ON
+		if uselinkgroups then
+		  _p(1, '-Wl,--start-group')
+		end
+		for a, link in ipairs(config.getlinks(cfg, "dependencies", "object")) do
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link.linktarget.basename)
+		end
+		if uselinkgroups then
+		  -- System libraries don't depend on the project
+		  _p(1, '-Wl,--end-group')
+		  _p(1, '-Wl,--start-group')
+		end
+		for _, link in ipairs(config.getlinks(cfg, "system", "basename")) do
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
+		end
+		if uselinkgroups then
+		  _p(1, '-Wl,--end-group')
 		end
 		_p(')')
 
