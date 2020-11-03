@@ -6,6 +6,7 @@
 --              Manu Evans
 --              Tom van Dijck
 --              Yehonatan Ballas
+--              Joel Linn
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -43,8 +44,12 @@ end
 function m.generate(prj)
 	p.utf8()
 
+	if prj.kind == 'Utility' then
+		return
+	end
+
 	if prj.kind == 'StaticLib' then
-		_p('add_library("%s"', prj.name)
+		_p('add_library("%s" STATIC', prj.name)
 	elseif prj.kind == 'SharedLib' then
 		_p('add_library("%s" SHARED', prj.name)
 	else
