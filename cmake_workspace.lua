@@ -5,6 +5,7 @@
 -- Modified by: Andrea Zanellato
 --              Manu Evans
 --              Yehonatan Ballas
+--              Joel Linn
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -24,6 +25,15 @@ local m = cmake.workspace
 function m.generate(wks)
 	p.utf8()
 	p.w('cmake_minimum_required(VERSION 3.16)')
+	
+	-- Clear default flags
+	p.w('set(CMAKE_MSVC_RUNTIME_LIBRARY "")')
+	p.w('set(CMAKE_C_FLAGS "")')
+	p.w('set(CMAKE_CXX_FLAGS "")')
+	for cfg in workspace.eachconfig(wks) do
+		p.w('set(CMAKE_C_FLAGS_%s "")', string.upper(cmake.cfgname(cfg)))
+		p.w('set(CMAKE_CXX_FLAGS_%s "")', string.upper(cmake.cfgname(cfg)))
+	end
 	p.w('project("%s")', wks.name)
 
 	--

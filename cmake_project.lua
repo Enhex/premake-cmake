@@ -126,6 +126,20 @@ function m.generate(prj)
 		end
 		_p(')')
 
+		-- build options
+		_p('target_compile_options("%s" PRIVATE', prj.name)
+		-- TODO create an esc function and use p.esc()
+		for _, option in ipairs(cfg.buildoptions) do
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), option)
+		end
+		for _, flag in ipairs(toolset.getcflags(cfg)) do
+			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
+		end
+		for _, flag in ipairs(toolset.getcxxflags(cfg)) do
+			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
+		end
+		_p(')')
+
 		-- link options
 		_p('target_link_options("%s" PRIVATE', prj.name)
 		for _, option in ipairs(cfg.linkoptions) do
