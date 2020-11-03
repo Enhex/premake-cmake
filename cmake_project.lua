@@ -79,21 +79,21 @@ function m.generate(prj)
 		-- include dirs
 		_p('target_include_directories("%s" PRIVATE', prj.name)
 		for _, includedir in ipairs(cfg.includedirs) do
-			_x(1, '$<$<CONFIG:%s>:%s>', cfg.name, includedir)
+			_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
 		end
 		_p(')')
 		
 		-- defines
 		_p('target_compile_definitions("%s" PRIVATE', prj.name)
 		for _, define in ipairs(cfg.defines) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, p.esc(define):gsub(' ', '\\ '))
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), p.esc(define):gsub(' ', '\\ '))
 		end
 		_p(')')
 
 		-- lib dirs
 		_p('target_link_directories("%s" PRIVATE', prj.name)
 		for _, libdir in ipairs(cfg.libdirs) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, libdir)
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), libdir)
 		end
 		_p(')')
 
@@ -103,9 +103,9 @@ function m.generate(prj)
 		for _, link in ipairs(toolset.getlinks(cfg)) do
 			-- CMake can't handle relative paths
 			if link:find('/') ~= nil then
-				_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, path.getabsolute(prj.location .. '/' .. link))
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), path.getabsolute(prj.location .. '/' .. link))
 			else
-				_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, link)
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
 			end
 		end
 		_p(')')
@@ -113,10 +113,10 @@ function m.generate(prj)
 		-- link options
 		_p('target_link_options("%s" PRIVATE', prj.name)
 		for _, option in ipairs(cfg.linkoptions) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, option)
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), option)
 		end
 		for _, flag in ipairs(toolset.getldflags(cfg)) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cfg.name, flag)
+			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), flag)
 		end
 		_p(')')
 
@@ -145,7 +145,7 @@ function m.generate(prj)
 				pic = 'True'
 			end
 
-			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cfg.name)
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 			_p(1, 'set_target_properties("%s" PROPERTIES', prj.name)
 			_p(2, 'CXX_STANDARD %s', standard[cfg.cppdialect])
 			_p(2, 'CXX_STANDARD_REQUIRED YES')
@@ -182,7 +182,7 @@ function m.generate(prj)
 				pch = project.getrelative(cfg.project, path.getabsolute(pch))
 			end
 
-			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cfg.name)
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 			_p('target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
 			_p('endif()')
 		end
