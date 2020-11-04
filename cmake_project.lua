@@ -165,15 +165,9 @@ function m.generate(prj)
 			standard["gnu++17"] = 17
 			standard["gnu++20"] = 20
 
-			local extentions = 'YES'
-			if cfg.cppdialect:find('^gnu') == nil then
-				extentions = 'NO'
-			end
-			
-			local pic = 'False'
-			if cfg.pic == 'On' then
-				pic = 'True'
-			end
+			local extentions = iif(cfg.cppdialect:find('^gnu') == nil, 'NO', 'YES')
+			local pic = iif(cfg.pic == 'On', 'True', 'False')
+			local lto = iif(cfg.flags.LinkTimeOptimization, 'True', 'False')
 
 			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 			_p(1, 'set_target_properties("%s" PROPERTIES', prj.name)
@@ -181,6 +175,7 @@ function m.generate(prj)
 			_p(2, 'CXX_STANDARD_REQUIRED YES')
 			_p(2, 'CXX_EXTENSIONS %s', extentions)
 			_p(2, 'POSITION_INDEPENDENT_CODE %s', pic)
+			_p(2, 'INTERPROCEDURAL_OPTIMIZATION %s', lto)
 			_p(1, ')')
 			_p('endif()')
 		end
