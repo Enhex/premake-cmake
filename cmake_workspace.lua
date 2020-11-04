@@ -25,15 +25,50 @@ local m = cmake.workspace
 function m.generate(wks)
 	p.utf8()
 	p.w('cmake_minimum_required(VERSION 3.16)')
-	
+	p.w()
+
+	local cfgs = {}
+	local cfg_default = nil
+	for cfg in workspace.eachconfig(wks) do
+		local name = cmake.cfgname(cfg)
+		table.insert(cfgs, name)
+		if name == "Debug" then
+			cfg_default = name
+		end
+	end
+	if not cfg_default then
+		cfg_default = cfgs[1]
+	end
+
+	-- Enforce available configurations
+	p.w('set(PREMAKE_BUILD_TYPES "%s")', table.concat(cfgs, '" "'))
+	p.w('get_property(multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)')
+	p.push('if(multi_config)')
+	p.w('set(CMAKE_CONFIGURATION_TYPES "${PREMAKE_BUILD_TYPES}" CACHE STRING "list of supported configuration types" FORCE)')
+	p.pop()
+	p.push('else()')
+	p.w('set(CMAKE_BUILD_TYPE "%s" CACHE STRING "Build Type of the project.")', cfg_default)
+	p.w('set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "${PREMAKE_BUILD_TYPES}")')
+	p.push('if(NOT CMAKE_BUILD_TYPE IN_LIST PREMAKE_BUILD_TYPES)')
+	p.push('message(FATAL_ERROR')
+	p.w('"Invalid build type \'${CMAKE_BUILD_TYPE}\'.')
+	p.w('CMAKE_BUILD_TYPE must be any one of the possible values:')
+	p.w('${PREMAKE_BUILD_TYPES}"')
+	p.pop(')')
+	p.pop('endif()')
+	p.pop('endif()')
+	p.w()
+
 	-- Clear default flags
 	p.w('set(CMAKE_MSVC_RUNTIME_LIBRARY "")')
 	p.w('set(CMAKE_C_FLAGS "")')
 	p.w('set(CMAKE_CXX_FLAGS "")')
-	for cfg in workspace.eachconfig(wks) do
-		p.w('set(CMAKE_C_FLAGS_%s "")', string.upper(cmake.cfgname(cfg)))
-		p.w('set(CMAKE_CXX_FLAGS_%s "")', string.upper(cmake.cfgname(cfg)))
+	for _, cfg in pairs(cfgs) do
+		p.w('set(CMAKE_C_FLAGS_%s "")', string.upper(cfg))
+		p.w('set(CMAKE_CXX_FLAGS_%s "")', string.upper(cfg))
 	end
+	p.w()
+
 	p.w('project("%s")', wks.name)
 
 	--
