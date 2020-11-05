@@ -27,8 +27,24 @@ function m.generate(wks)
 	p.w('cmake_minimum_required(VERSION 3.16)')
 	p.w()
 
+	local _platforms = {}
+	local platforms = {}
+	for cfg in workspace.eachconfig(wks) do
+		local platform = cfg.platform
+		if platform and not _platforms[platform] then
+			_platforms[platform] = true
+		end
+	end
+	-- Make a list of platforms
+	for k, _ in pairs(_platforms) do
+		table.insert(platforms, k)
+	end
+
+	cmake.workspace.multiplePlatforms = #platforms > 1
+
 	local cfgs = {}
 	local cfg_default = nil
+	-- We can not join this loop with the earlier one since `cfgname()` depends on `multiplePlatforms`.
 	for cfg in workspace.eachconfig(wks) do
 		local name = cmake.cfgname(cfg)
 		table.insert(cfgs, name)
