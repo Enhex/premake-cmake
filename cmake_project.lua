@@ -128,7 +128,13 @@ function m.generate(prj)
 
 		-- build options
 		_p('target_compile_options("%s" PRIVATE', prj.name)
-		-- TODO create an esc function and use p.esc()
+		-- FIXE: target_compile_options() always escapes chars like ` or "
+		-- https://gitlab.kitware.com/cmake/cmake/-/issues/21396
+		-- Setting COMPILE_FLAGS (and LINK_FLAGS) works as desired,
+		-- but we would need to filter c vs. cxx files and set flags using
+		-- set_source_files_properties() individually. That way it would
+		-- also be possible to support premakes "compileas" and
+		-- per file "buildoptions". See the gmake2 core module.
 		for _, option in ipairs(cfg.buildoptions) do
 			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), option)
 		end
