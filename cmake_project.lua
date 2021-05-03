@@ -34,7 +34,7 @@ function m.files(prj)
 	local tr = project.getsourcetree(prj)
 	tree.traverse(tr, {
 		onleaf = function(node, depth)
-			_p(depth, '"%s"', node.relpath)
+			_p(depth, '"%s"', path.getrelative(os.getcwd(), node.abspath))
 		end
 	}, true)
 end
