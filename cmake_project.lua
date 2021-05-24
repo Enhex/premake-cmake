@@ -118,7 +118,7 @@ function m.generate(prj)
 		  _p(1, '-Wl,--end-group')
 		  _p(1, '-Wl,--start-group')
 		end
-		for _, link in ipairs(config.getlinks(cfg, "system", "basename")) do
+		for _, link in ipairs(config.getlinks(cfg, "system", "fullpath")) do
 			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
 		end
 		if uselinkgroups then
