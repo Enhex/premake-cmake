@@ -7,6 +7,7 @@
 --              Tom van Dijck
 --              Yehonatan Ballas
 --              Joel Linn
+--              UndefinedVertex
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -54,6 +55,9 @@ function m.generate(prj)
 	elseif prj.kind == 'SharedLib' then
 		_p('add_library("%s" SHARED', prj.name)
 	else
+		if prj.executable_suffix then
+			_p('set(CMAKE_EXECUTABLE_SUFFIX "%s")', prj.executable_suffix)
+		end
 		_p('add_executable("%s"', prj.name)
 	end
 	m.files(prj)
