@@ -6,11 +6,19 @@
 --              Andrew Gough
 --              Manu Evans
 --              Yehonatan Ballas
+--              UndefinedVertex
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
 
 local p = premake
+
+-- support cmake executable_suffix
+p.api.register {
+	name = "executable_suffix",
+	scope = "config",
+	kind = "string",
+}
 
 newaction
 {
