@@ -130,33 +130,38 @@ function m.generate(prj)
 		end
 		_p(')')
 
-		-- build options
-		_p('target_compile_options("%s" PRIVATE', prj.name)
-		-- FIXE: target_compile_options() always escapes chars like ` or "
-		-- https://gitlab.kitware.com/cmake/cmake/-/issues/21396
-		-- Setting COMPILE_FLAGS (and LINK_FLAGS) works as desired,
-		-- but we would need to filter c vs. cxx files and set flags using
-		-- set_source_files_properties() individually. That way it would
-		-- also be possible to support premakes "compileas" and
-		-- per file "buildoptions". See the gmake2 core module.
+		-- setting build options
+		all_build_options = ""
 		for _, option in ipairs(cfg.buildoptions) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), option)
+			all_build_options = all_build_options .. option .. " "
 		end
+		
+		if all_build_options ~= "" then
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			_p(1, 'set_target_properties("%s" PROPERTIES COMPILE_FLAGS "%s")', prj.name, all_build_options)
+			_p('endif()')
+		end
+
+		-- setting link options
+		all_link_options = ""
+		for _, option in ipairs(cfg.linkoptions) do
+			all_link_options = all_link_options .. option .. " "
+		end
+
+		if all_link_options ~= "" then
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			_p(1, 'set_target_properties("%s" PROPERTIES LINK_FLAGS "%s")', prj.name, all_link_options)
+			_p('endif()')
+		end
+		
+		
+		_p('target_compile_options("%s" PRIVATE', prj.name)
+
 		for _, flag in ipairs(toolset.getcflags(cfg)) do
 			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
 		end
 		for _, flag in ipairs(toolset.getcxxflags(cfg)) do
 			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
-		end
-		_p(')')
-
-		-- link options
-		_p('target_link_options("%s" PRIVATE', prj.name)
-		for _, option in ipairs(cfg.linkoptions) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), option)
-		end
-		for _, flag in ipairs(toolset.getldflags(cfg)) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), flag)
 		end
 		_p(')')
 
