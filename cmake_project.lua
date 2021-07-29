@@ -45,6 +45,13 @@ end
 --
 function m.generate(prj)
 	p.utf8()
+    
+    -- if kind is only defined for configs, promote to project
+    if prj.kind == nil then
+        for cfg in project.eachconfig(prj) do
+            prj.kind = cfg.kind
+        end
+    end
 
 	if prj.kind == 'Utility' then
 		return
