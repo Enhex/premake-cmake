@@ -87,11 +87,27 @@ function m.generate(prj)
 		_p('endif()')
 
 		-- include dirs
+
+		if #cfg.sysincludedirs > 0 then
+			_p('target_include_directories("%s" SYSTEM PRIVATE', prj.name)
+			for _, includedir in ipairs(cfg.sysincludedirs) do
+				_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
+			end
+			_p(')')
+		end
 		_p('target_include_directories("%s" PRIVATE', prj.name)
 		for _, includedir in ipairs(cfg.includedirs) do
 			_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
 		end
 		_p(')')
+
+		if #cfg.forceincludes > 0 then
+			_p('if (MSVC)')
+			_p(1, 'target_compile_options("%s" PRIVATE %s)', prj.name, table.implode(p.tools.msc.getforceincludes(cfg), "", "", " "))
+			_p('else()')
+			_p(1, 'target_compile_options("%s" PRIVATE %s)', prj.name, table.implode(p.tools.gcc.getforceincludes(cfg), "", "", " "))
+			_p('endif()')
+		end
 
 		-- defines
 		_p('target_compile_definitions("%s" PRIVATE', prj.name)
@@ -138,7 +154,7 @@ function m.generate(prj)
 		
 		if all_build_options ~= "" then
 			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
-			_p(1, 'set_target_properties("%s" PROPERTIES COMPILE_FLAGS "%s")', prj.name, all_build_options)
+			_p(1, 'set_target_properties("%s" PROPERTIES COMPILE_FLAGS %s)', prj.name, all_build_options)
 			_p('endif()')
 		end
 
