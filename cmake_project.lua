@@ -95,11 +95,13 @@ function m.generate(prj)
 			end
 			_p(')')
 		end
-		_p('target_include_directories("%s" PRIVATE', prj.name)
-		for _, includedir in ipairs(cfg.includedirs) do
-			_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
+		if #cfg.includedirs > 0 then
+			_p('target_include_directories("%s" PRIVATE', prj.name)
+			for _, includedir in ipairs(cfg.includedirs) do
+				_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
+			end
+			_p(')')
 		end
-		_p(')')
 
 		if #cfg.forceincludes > 0 then
 			_p('if (MSVC)')
@@ -110,41 +112,47 @@ function m.generate(prj)
 		end
 
 		-- defines
-		_p('target_compile_definitions("%s" PRIVATE', prj.name)
-		for _, define in ipairs(cfg.defines) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), p.esc(define):gsub(' ', '\\ '))
+		if #cfg.defines > 0 then
+			_p('target_compile_definitions("%s" PRIVATE', prj.name)
+			for _, define in ipairs(cfg.defines) do
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), p.esc(define):gsub(' ', '\\ '))
+			end
+			_p(')')
 		end
-		_p(')')
 
 		-- lib dirs
-		_p('target_link_directories("%s" PRIVATE', prj.name)
-		for _, libdir in ipairs(cfg.libdirs) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), libdir)
+		if #cfg.libdirs > 0 then
+			_p('target_link_directories("%s" PRIVATE', prj.name)
+			for _, libdir in ipairs(cfg.libdirs) do
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), libdir)
+			end
+			_p(')')
 		end
-		_p(')')
 
 		-- libs
-		_p('target_link_libraries("%s"', prj.name)
-		-- Do not use toolset here as cmake needs to resolve dependency chains
 		local uselinkgroups = isclangorgcc and cfg.linkgroups == p.ON
-		if uselinkgroups then
-		  _p(1, '-Wl,--start-group')
+		if uselinkgroups or # config.getlinks(cfg, "dependencies", "object") > 0 or #config.getlinks(cfg, "system", "fullpath") > 0 then
+			_p('target_link_libraries("%s"', prj.name)
+			-- Do not use toolset here as cmake needs to resolve dependency chains
+			if uselinkgroups then
+				_p(1, '-Wl,--start-group')
+			end
+			for a, link in ipairs(config.getlinks(cfg, "dependencies", "object")) do
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link.linktarget.basename)
+			end
+			if uselinkgroups then
+				-- System libraries don't depend on the project
+				_p(1, '-Wl,--end-group')
+				_p(1, '-Wl,--start-group')
+			end
+			for _, link in ipairs(config.getlinks(cfg, "system", "fullpath")) do
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
+			end
+			if uselinkgroups then
+				_p(1, '-Wl,--end-group')
+			end
+			_p(')')
 		end
-		for a, link in ipairs(config.getlinks(cfg, "dependencies", "object")) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link.linktarget.basename)
-		end
-		if uselinkgroups then
-		  -- System libraries don't depend on the project
-		  _p(1, '-Wl,--end-group')
-		  _p(1, '-Wl,--start-group')
-		end
-		for _, link in ipairs(config.getlinks(cfg, "system", "fullpath")) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
-		end
-		if uselinkgroups then
-		  _p(1, '-Wl,--end-group')
-		end
-		_p(')')
 
 		-- setting build options
 		all_build_options = ""
@@ -170,16 +178,17 @@ function m.generate(prj)
 			_p('endif()')
 		end
 		
-		
-		_p('target_compile_options("%s" PRIVATE', prj.name)
+		if #toolset.getcflags(cfg) > 0 or #toolset.getcxxflags(cfg) > 0 then
+			_p('target_compile_options("%s" PRIVATE', prj.name)
 
-		for _, flag in ipairs(toolset.getcflags(cfg)) do
-			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
+			for _, flag in ipairs(toolset.getcflags(cfg)) do
+				_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
+			end
+			for _, flag in ipairs(toolset.getcxxflags(cfg)) do
+				_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
+			end
+			_p(')')
 		end
-		for _, flag in ipairs(toolset.getcxxflags(cfg)) do
-			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
-		end
-		_p(')')
 
 		-- C++ standard
 		-- only need to configure it specified
