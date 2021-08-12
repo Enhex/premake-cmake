@@ -251,5 +251,36 @@ function m.generate(prj)
 			_p('target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
 			_p('endif()')
 		end
+
+		-- pre/post buildcommands
+		if cfg.prebuildmessage or #cfg.prebuildcommands > 0 then
+			-- add_custom_command PRE_BUILD runs just before generating the target
+			-- so instead, use add_custom_target to run it before any rule (as obj)
+			_p('add_custom_target(prebuild-%s', prj.name)
+			if cfg.prebuildmessage then
+				local command = os.translateCommandsAndPaths("{ECHO} " .. cfg.prebuildmessage, cfg.project.basedir, cfg.project.location)
+				_p('  COMMAND %s', command)
+			end
+			local commands = os.translateCommandsAndPaths(cfg.prebuildcommands, cfg.project.basedir, cfg.project.location)
+			for _, command in ipairs(commands) do
+				_p('  COMMAND %s', command)
+			end
+			_p(')')
+			_p('add_dependencies(%s prebuild-%s)', prj.name, prj.name)
+		end
+
+		if cfg.postbuildmessage or #cfg.postbuildcommands > 0 then
+			_p('add_custom_command(TARGET %s POST_BUILD', prj.name)
+			if cfg.postbuildmessage then
+				local command = os.translateCommandsAndPaths("{ECHO} " .. cfg.postbuildmessage, cfg.project.basedir, cfg.project.location)
+				_p('  COMMAND %s', command)
+			end
+			local commands = os.translateCommandsAndPaths(cfg.postbuildcommands, cfg.project.basedir, cfg.project.location)
+			for _, command in ipairs(commands) do
+				_p('  COMMAND %s', command)
+			end
+			_p(')')
+		end
+
 	end
 end
