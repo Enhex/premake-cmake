@@ -138,7 +138,7 @@ function m.generate(prj)
 				_p(1, '-Wl,--start-group')
 			end
 			for a, link in ipairs(config.getlinks(cfg, "dependencies", "object")) do
-				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link.linktarget.basename)
+				_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link.project.name)
 			end
 			if uselinkgroups then
 				-- System libraries don't depend on the project
