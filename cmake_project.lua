@@ -50,6 +50,10 @@ function m.generate(prj)
 		return
 	end
 
+	local oldGetDefaultSeparator = path.getDefaultSeparator
+	path.getDefaultSeparator = function() return "/" end
+
+
 	if prj.kind == 'StaticLib' then
 		_p('add_library("%s" STATIC', prj.name)
 	elseif prj.kind == 'SharedLib' then
@@ -282,5 +286,38 @@ function m.generate(prj)
 			_p(')')
 		end
 
+		-- custom command
+		local function addCustomCommand(config, filename)
+			if #config.buildcommands == 0 or #config.buildOutputs == 0 then
+				return
+			end
+			_p('add_custom_command(TARGET OUTPUT %s', table.implode(config.buildOutputs,"",""," "))
+			if config.buildmessage then
+				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. config.buildmessage, config.project.basedir, config.project.location))
+			end
+			for _, command in ipairs(config.buildCommands) do
+				_p('  COMMAND %s', os.translateCommandsAndPaths(command, config.project.basedir, config.project.location))
+			end
+			if filename ~= "" and #config.buildInputs ~= 0 then
+				filename = filename .. " "
+			end
+			if filename ~= "" or #config.buildInputs ~= 0 then
+				_p('  DEPENDS %s', filename .. table.implode(config.buildInputs,"",""," "))
+			end
+			_p(')')
+
+		end
+		local tr = project.getsourcetree(cfg.project)
+		p.tree.traverse(tr, {
+			onleaf = function(node, depth)
+				local filecfg = p.fileconfig.getconfig(node, cfg)
+				if p.fileconfig.hasFileSettings(filecfg) then
+					addCustomCommand(filecfg, node.relpath)
+				end
+			end
+		})
+		addCustomCommand(cfg, "")
 	end
+-- restore
+	path.getDefaultSeparator = oldGetDefaultSeparator
 end
