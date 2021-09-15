@@ -45,7 +45,7 @@ end
 --
 function m.generate(prj)
 	p.utf8()
-    
+
     -- if kind is only defined for configs, promote to project
     if prj.kind == nil then
         for cfg in project.eachconfig(prj) do
@@ -91,85 +91,73 @@ function m.generate(prj)
 		_p(2, 'LIBRARY_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
 		_p(2, 'RUNTIME_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
 		_p(1,')')
-		_p('endif()')
 
 		-- include dirs
-		_p('target_include_directories("%s" PRIVATE', prj.name)
+		_p(1, 'target_include_directories("%s" PRIVATE', prj.name)
 		for _, includedir in ipairs(cfg.includedirs) do
-			_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
+			_x(2, '%s', includedir)
 		end
-		_p(')')
+		_p(1, ')')
 
 		-- defines
-		_p('target_compile_definitions("%s" PRIVATE', prj.name)
+		_p(1, 'target_compile_definitions("%s" PRIVATE', prj.name)
 		for _, define in ipairs(cfg.defines) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), p.esc(define):gsub(' ', '\\ '))
+			_p(2, '%s', p.esc(define):gsub(' ', '\\ '))
 		end
-		_p(')')
+		_p(1, ')')
 
 		-- lib dirs
-		_p('target_link_directories("%s" PRIVATE', prj.name)
+		_p(1, 'target_link_directories("%s" PRIVATE', prj.name)
 		for _, libdir in ipairs(cfg.libdirs) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), libdir)
+			_p(2, '%s', libdir)
 		end
-		_p(')')
+		_p(1, ')')
 
 		-- libs
-		_p('target_link_libraries("%s"', prj.name)
+		_p(1, 'target_link_libraries("%s"', prj.name)
 		-- Do not use toolset here as cmake needs to resolve dependency chains
 		local uselinkgroups = isclangorgcc and cfg.linkgroups == p.ON
 		if uselinkgroups then
-		  _p(1, '-Wl,--start-group')
+		  _p(2, '-Wl,--start-group')
 		end
 		for a, link in ipairs(config.getlinks(cfg, "dependencies", "object")) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link.linktarget.basename)
+			_p(2, '%s', link.linktarget.basename)
 		end
 		if uselinkgroups then
 		  -- System libraries don't depend on the project
-		  _p(1, '-Wl,--end-group')
-		  _p(1, '-Wl,--start-group')
+		  _p(2, '-Wl,--end-group')
+		  _p(2, '-Wl,--start-group')
 		end
 		for _, link in ipairs(config.getlinks(cfg, "system", "fullpath")) do
-			_p(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), link)
+			_p(2, '%s', link)
 		end
 		if uselinkgroups then
-		  _p(1, '-Wl,--end-group')
+		  _p(2, '-Wl,--end-group')
 		end
-		_p(')')
+		_p(1, ')')
+
 
 		-- setting build options
-		all_build_options = ""
-		for _, option in ipairs(cfg.buildoptions) do
-			all_build_options = all_build_options .. option .. " "
-		end
-		
-		if all_build_options ~= "" then
-			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
-			_p(1, 'set_target_properties("%s" PROPERTIES COMPILE_FLAGS "%s")', prj.name, all_build_options)
-			_p('endif()')
+		common_build_options = table.concat(cfg.buildoptions, " ")
+		if common_build_options ~= "" then
+			_p(1, 'set_target_properties("%s" PROPERTIES COMPILE_FLAGS "%s")', prj.name, common_build_options)
 		end
 
 		-- setting link options
-		all_link_options = ""
-		for _, option in ipairs(cfg.linkoptions) do
-			all_link_options = all_link_options .. option .. " "
+		common_link_options = table.concat(cfg.linkoptions, " ")
+		if common_link_options ~= "" then
+			_p(1, 'set_target_properties("%s" PROPERTIES LINK_FLAGS "%s")', prj.name, common_link_options)
 		end
 
-		if all_link_options ~= "" then
-			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
-			_p(1, 'set_target_properties("%s" PROPERTIES LINK_FLAGS "%s")', prj.name, all_link_options)
-			_p('endif()')
-		end
-		
-		
-		_p('target_compile_options("%s" PRIVATE', prj.name)
+		_p(1, 'target_compile_options("%s" PRIVATE', prj.name)
 
 		for _, flag in ipairs(toolset.getcflags(cfg)) do
-			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
+			_p(2, '$<$<COMPILE_LANGUAGE:C>:%s>', flag)
 		end
 		for _, flag in ipairs(toolset.getcxxflags(cfg)) do
-			_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
+			_p(2, '$<$<COMPILE_LANGUAGE:CXX>:%s>', flag)
 		end
+		_p(1, ')')
 		_p(')')
 
 		-- C++ standard
@@ -191,7 +179,6 @@ function m.generate(prj)
 			local pic = iif(cfg.pic == 'On', 'True', 'False')
 			local lto = iif(cfg.flags.LinkTimeOptimization, 'True', 'False')
 
-			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 			_p(1, 'set_target_properties("%s" PROPERTIES', prj.name)
 			_p(2, 'CXX_STANDARD %s', standard[cfg.cppdialect])
 			_p(2, 'CXX_STANDARD_REQUIRED YES')
@@ -199,7 +186,6 @@ function m.generate(prj)
 			_p(2, 'POSITION_INDEPENDENT_CODE %s', pic)
 			_p(2, 'INTERPROCEDURAL_OPTIMIZATION %s', lto)
 			_p(1, ')')
-			_p('endif()')
 		end
 
 		-- precompiled headers
@@ -229,9 +215,8 @@ function m.generate(prj)
 				pch = project.getrelative(cfg.project, path.getabsolute(pch))
 			end
 
-			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
-			_p('target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
-			_p('endif()')
+			_p(1, 'target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
 		end
+		_p('endif()')
 	end
 end
