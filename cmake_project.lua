@@ -9,7 +9,7 @@
 --              Joel Linn
 --              UndefinedVertex
 -- Created:     2013/05/06
--- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
+-- Copyright:   (c) 2008-2022 Jason Perkins and the Premake project
 --
 
 local p = premake
@@ -158,10 +158,29 @@ function m.generate(prj)
 			_p(2, '$<$<COMPILE_LANGUAGE:CXX>:%s>', flag)
 		end
 		_p(1, ')')
-		_p(')')
+
+		-- setting per fille build options
+		table.foreachi(prj._.files, function(node)
+			local fcfg = p.fileconfig.getconfig(node, cfg)
+			if fcfg then
+				toolset_flags = {}
+				if path.iscfile(fcfg.name) then
+					toolset_flags = toolset.getcflags(fcfg)
+				else
+					toolset_flags = toolset.getcxxflags(fcfg)
+				end
+				file_build_options = table.concat(table.join(toolset_flags, fcfg.buildoptions), " ")
+				if file_build_options ~= "" then
+					_p(1,
+						'set_source_files_properties("%s" PROPERTIES COMPILE_FLAGS "%s")',
+						path.getrelative(prj.workspace.location, fcfg.abspath),
+						file_build_options)
+				end
+			end
+		end)
 
 		-- C++ standard
-		-- only need to configure it specified
+		-- only need to configure if specified
 		if (cfg.cppdialect ~= nil and cfg.cppdialect ~= '') or cfg.cppdialect == 'Default' then
 			local standard = {}
 			standard["C++98"] = 98
