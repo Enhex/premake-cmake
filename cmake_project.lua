@@ -250,7 +250,7 @@ function m.generate(prj)
         end
 
         local getBuildCommands = function(t, cmd)
-            local s = ""
+            local out = ""
             for _, v in ipairs(cfg[t]) do
                 local s, e = v:find("{COPY}")
                 if s == nil then
@@ -258,32 +258,32 @@ function m.generate(prj)
                 else
                     v = v:sub(e + 2)
                     v = v:gsub("\\", "/")
-                    s = s .. string.format("add_custom_command(TARGET %s %s\n", prj.name, cmd)
+                    out = out ..
+                              string.format("add_custom_command(TARGET %s %s\n", prj.name, cmd)
 
                     -- Check if the file we have is a dir or a file.
                     if isdir(cfg.project.location .. "/" .. v) then
                         local s = v:find("/", -1, true)
                         local dirName = v
-                        if s ~= nil then
-                            dirName = v:sub(s)
-                            s = s ..
-                                    string.format(
-                                        "COMMAND \"${CMAKE_COMMAND}\" -E copy_directory \"%s/%s\" \"%s/%s\"\n",
-                                        cfg.project.location, v, cfg.buildtarget.directory,
-                                        dirName)
-                        end
+                        if s ~= nil then dirName = v:sub(s) end
+                        out = out ..
+                                  string.format(
+                                      "COMMAND \"${CMAKE_COMMAND}\" -E copy_directory \"%s/%s\" \"%s/%s\"\n",
+                                      cfg.project.location, v, cfg.buildtarget.directory,
+                                      dirName)
                     else
-                        s = s ..
-                                string.format(
-                                    "COMMAND \"${CMAKE_COMMAND}\" -E copy \"%s/%s\" \"%s\"\n",
-                                    cfg.project.location, v, cfg.buildtarget.directory)
+                        out = out ..
+                                  string.format(
+                                      "COMMAND \"${CMAKE_COMMAND}\" -E copy \"%s/%s\" \"%s\"\n",
+                                      cfg.project.location, v, cfg.buildtarget.directory)
                     end
-                    s = s ..
-                            string.format("COMMENT \"Copied '%s' to target directory\"\n)\n\n",
-                                          v)
+                    out = out ..
+                              string.format(
+                                  "COMMENT \"Copied '%s' to target directory\"\n)\n\n", v)
                 end
             end
-            return s
+
+            return out
         end
 
         -- Pre build commands.
@@ -295,10 +295,18 @@ function m.generate(prj)
         -- Post build commands.
         local postBuildCommands = getBuildCommands("postbuildcommands", "POST_BUILD")
 
-        if postBuildCommands ~= "" then
+        if preBuildCommands ~= "" then
             _p("if(CMAKE_BUILD_TYPE STREQUAL %s)", cmake.cfgname(cfg))
             _p("%s", preBuildCommands)
+            _p("endif()")
+        end
+        if preLinkCommands ~= "" then
+            _p("if(CMAKE_BUILD_TYPE STREQUAL %s)", cmake.cfgname(cfg))
             _p("%s", preLinkCommands)
+            _p("endif()")
+        end
+        if postBuildCommands ~= "" then
+            _p("if(CMAKE_BUILD_TYPE STREQUAL %s)", cmake.cfgname(cfg))
             _p("%s", postBuildCommands)
             _p("endif()")
         end
