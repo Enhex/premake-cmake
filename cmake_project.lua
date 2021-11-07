@@ -36,6 +36,31 @@ function m.files(prj)
 	tree.traverse(tr, {
 		onleaf = function(node, depth)
 			_p(depth, '"%s"', path.getrelative(prj.workspace.location, node.abspath))
+
+			-- add generated files
+			for cfg in project.eachconfig(prj) do
+				local filecfg = p.fileconfig.getconfig(node, cfg)
+				local rule = p.global.getRuleForFile(node.name, prj.rules)
+
+				if p.fileconfig.hasFileSettings(filecfg) then
+					for _, output in ipairs(filecfg.buildOutputs) do
+						_p(depth, '"%s"', path.getrelative(prj.workspace.location, output))
+					end
+					break
+				elseif rule then
+					local environ = table.shallowcopy(filecfg.environ)
+
+					if rule.propertydefinition then
+						p.rule.prepareEnvironment(rule, environ, cfg)
+						p.rule.prepareEnvironment(rule, environ, filecfg)
+					end
+					local rulecfg = p.context.extent(rule, environ)
+					for _, output in ipairs(rulecfg.buildOutputs) do
+						_p(depth, '"%s"', path.getrelative(prj.workspace.location, output))
+					end
+					break
+				end
+			end
 		end
 	}, true)
 end
@@ -287,32 +312,42 @@ function m.generate(prj)
 		end
 
 		-- custom command
-		local function addCustomCommand(config, filename)
-			if #config.buildcommands == 0 or #config.buildOutputs == 0 then
+		local function addCustomCommand(fileconfig, filename)
+			if #fileconfig.buildcommands == 0 or #fileconfig.buildOutputs == 0 then
 				return
 			end
-			_p('add_custom_command(TARGET OUTPUT %s', table.implode(config.buildOutputs,"",""," "))
-			if config.buildmessage then
-				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. config.buildmessage, config.project.basedir, config.project.location))
+			_p('add_custom_command(TARGET OUTPUT %s', table.implode(project.getrelative(cfg.project, fileconfig.buildOutputs),"",""," "))
+			if fileconfig.buildmessage then
+				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. fileconfig.buildmessage, cfg.project.basedir, cfg.project.location))
 			end
-			for _, command in ipairs(config.buildCommands) do
-				_p('  COMMAND %s', os.translateCommandsAndPaths(command, config.project.basedir, config.project.location))
+			for _, command in ipairs(fileconfig.buildCommands) do
+				_p('  COMMAND %s', os.translateCommandsAndPaths(command, cfg.project.basedir, cfg.project.location))
 			end
-			if filename ~= "" and #config.buildInputs ~= 0 then
+			if filename ~= "" and #fileconfig.buildInputs ~= 0 then
 				filename = filename .. " "
 			end
-			if filename ~= "" or #config.buildInputs ~= 0 then
-				_p('  DEPENDS %s', filename .. table.implode(config.buildInputs,"",""," "))
+			if filename ~= "" or #fileconfig.buildInputs ~= 0 then
+				_p('  DEPENDS %s', filename .. table.implode(fileconfig.buildInputs,"",""," "))
 			end
 			_p(')')
-
 		end
 		local tr = project.getsourcetree(cfg.project)
 		p.tree.traverse(tr, {
 			onleaf = function(node, depth)
 				local filecfg = p.fileconfig.getconfig(node, cfg)
+				local rule = p.global.getRuleForFile(node.name, prj.rules)
+
 				if p.fileconfig.hasFileSettings(filecfg) then
 					addCustomCommand(filecfg, node.relpath)
+				elseif rule then
+					local environ = table.shallowcopy(filecfg.environ)
+
+					if rule.propertydefinition then
+						p.rule.prepareEnvironment(rule, environ, cfg)
+						p.rule.prepareEnvironment(rule, environ, filecfg)
+					end
+					local rulecfg = p.context.extent(rule, environ)
+					addCustomCommand(rulecfg, node.relpath)
 				end
 			end
 		})
