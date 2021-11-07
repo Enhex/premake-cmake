@@ -109,9 +109,9 @@ function m.generate(prj)
 		-- output dir
 		_p(1,'set_target_properties("%s" PROPERTIES', prj.name)
 		_p(2, 'OUTPUT_NAME "%s"', cfg.buildtarget.basename)
-		_p(2, 'ARCHIVE_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
-		_p(2, 'LIBRARY_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
-		_p(2, 'RUNTIME_OUTPUT_DIRECTORY "%s"', cfg.buildtarget.directory)
+		_p(2, 'ARCHIVE_OUTPUT_DIRECTORY "%s"', path.getrelative(prj.workspace.location, cfg.buildtarget.directory))
+		_p(2, 'LIBRARY_OUTPUT_DIRECTORY "%s"', path.getrelative(prj.workspace.location, cfg.buildtarget.directory))
+		_p(2, 'RUNTIME_OUTPUT_DIRECTORY "%s"', path.getrelative(prj.workspace.location, cfg.buildtarget.directory))
 		_p(1,')')
 		_p('endif()')
 
