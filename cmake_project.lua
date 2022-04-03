@@ -230,7 +230,53 @@ function m.generate(prj)
 			end
 
 			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
-			_p('target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
+			_p(1, 'target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
+			_p('endif()')
+		end
+
+		-- Add pre build
+		if #cfg.prebuildcommands > 0 or cfg.prebuildmessage then
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			if cfg.prebuildmessage then
+				local command = os.translateCommandsAndPaths("@{ECHO} " .. cfg.prebuildmessage, cfg.project.basedir, cfg.project.location)
+				_p(1, 'add_custom_command(')
+				_p(2, 'TARGET %s', prj.name)
+				_p(2, 'PRE_BUILD')
+				_p(2, 'COMMAND %s', command)
+				_p(1, ')')			
+			end
+
+			local commands = os.translateCommandsAndPaths(cfg.prebuildcommands, cfg.project.basedir, cfg.project.location)
+			for _, command in ipairs(commands) do
+				_p(1, 'add_custom_command(')
+				_p(2, 'TARGET %s', prj.name)
+				_p(2, 'PRE_BUILD')
+				_p(2, 'COMMAND %s', command)
+				_p(1, ')')
+			end
+			_p('endif()')
+		end
+		
+		-- Add post build steps
+		if #cfg.postbuildcommands > 0 or cfg.postbuildmessage then
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			if cfg.postbuildmessage then
+				local command = os.translateCommandsAndPaths("@{ECHO} " .. cfg.postbuildmessage, cfg.project.basedir, cfg.project.location)
+				_p(1, 'add_custom_command(')
+				_p(2, 'TARGET %s', prj.name)
+				_p(2, 'POST_BUILD')
+				_p(2, 'COMMAND %s', command)
+				_p(1, ')')			
+			end
+			
+			local commands = os.translateCommandsAndPaths(cfg.postbuildcommands, cfg.project.basedir, cfg.project.location)
+			for _, command in ipairs(commands) do
+				_p(1, 'add_custom_command(')
+				_p(2, 'TARGET %s', prj.name)
+				_p(2, 'POST_BUILD')
+				_p(2, 'COMMAND %s', command)
+				_p(1, ')')
+			end
 			_p('endif()')
 		end
 	end
