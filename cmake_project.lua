@@ -8,6 +8,7 @@
 --              Yehonatan Ballas
 --              Joel Linn
 --              UndefinedVertex
+--              Lewis Weaver
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -21,7 +22,13 @@ local cmake = p.modules.cmake
 cmake.project = {}
 local m = cmake.project
 
-
+function string.starts(String,Start)
+	return string.sub(String,1,string.len(Start))==Start
+end
+function string.ends(String,End)
+	return string.sub(String,string.len(String) - string.len(End) + 1)==End
+end
+ 
 function m.getcompiler(cfg)
 	local default = iif(cfg.system == p.WINDOWS, "msc", "clang")
 	local toolset = p.tools[_OPTIONS.cc or cfg.toolset or default]
@@ -31,10 +38,34 @@ function m.getcompiler(cfg)
 	return toolset
 end
 
+function m.hassourcefiles(prj)
+	local tr = project.getsourcetree(prj)
+	local hasfile = false
+	tree.traverse(tr, {
+		onleaf = function(node, depth)
+			if node.abspath == nil then return end
+			local vpath = project.getvpath(prj, node.abspath)
+			if string.starts(vpath, 'iface') or string.starts(vpath, 'config') then
+				return
+			end
+			if string.ends(node.abspath, '.cu') then
+				return
+			end
+			hasfile = true
+		end
+	}, true)
+	return hasfile
+end
+
 function m.files(prj)
 	local tr = project.getsourcetree(prj)
 	tree.traverse(tr, {
 		onleaf = function(node, depth)
+			if node.abspath == nil then return end
+			local vpath = project.getvpath(prj, node.abspath)
+			if string.starts(vpath, 'iface') or string.starts(vpath, 'config') then
+				return
+			end
 			_p(depth, '"%s"', path.getrelative(prj.workspace.location, node.abspath))
 		end
 	}, true)
@@ -54,13 +85,19 @@ function m.generate(prj)
     end
 
 	if prj.kind == 'Utility' then
+		_p('add_library("%s" INTERFACE)', prj.name)
 		return
 	end
 
 	if prj.kind == 'StaticLib' then
 		_p('add_library("%s" STATIC', prj.name)
 	elseif prj.kind == 'SharedLib' then
-		_p('add_library("%s" SHARED', prj.name)
+		if m.hassourcefiles(prj) then
+			_p('add_library("%s" SHARED', prj.name)
+		else
+			_p('add_library("%s" INTERFACE)', prj.name)
+			return
+		end
 	else
 		if prj.executable_suffix then
 			_p('set(CMAKE_EXECUTABLE_SUFFIX "%s")', prj.executable_suffix)
