@@ -35,6 +35,7 @@ function m.files(prj)
 	local tr = project.getsourcetree(prj)
 	tree.traverse(tr, {
 		onleaf = function(node, depth)
+		
 			_p(depth, '"%s"', path.getrelative(prj.workspace.location, node.abspath))
 
 			-- add generated files
@@ -62,7 +63,7 @@ function m.files(prj)
 				end
 			end
 		end
-	}, true)
+	})
 end
 
 --
