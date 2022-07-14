@@ -44,7 +44,7 @@ function m.files(prj)
 				local rule = p.global.getRuleForFile(node.name, prj.rules)
 
 				if p.fileconfig.hasFileSettings(filecfg) then
-					for _, output in ipairs(filecfg.buildOutputs) do
+					for _, output in ipairs(filecfg.buildoutputs) do
 						_p(depth, '"%s"', path.getrelative(prj.workspace.location, output))
 					end
 					break
@@ -56,7 +56,7 @@ function m.files(prj)
 						p.rule.prepareEnvironment(rule, environ, filecfg)
 					end
 					local rulecfg = p.context.extent(rule, environ)
-					for _, output in ipairs(rulecfg.buildOutputs) do
+					for _, output in ipairs(rulecfg.buildoutputs) do
 						_p(depth, '"%s"', path.getrelative(prj.workspace.location, output))
 					end
 					break
@@ -314,21 +314,21 @@ function m.generate(prj)
 
 		-- custom command
 		local function addCustomCommand(fileconfig, filename)
-			if #fileconfig.buildcommands == 0 or #fileconfig.buildOutputs == 0 then
+			if #fileconfig.buildcommands == 0 or #fileconfig.buildoutputs == 0 then
 				return
 			end
-			_p('add_custom_command(TARGET OUTPUT %s', table.implode(project.getrelative(cfg.project, fileconfig.buildOutputs),"",""," "))
+			_p('add_custom_command(TARGET OUTPUT %s', table.implode(project.getrelative(cfg.project, fileconfig.buildoutputs),"",""," "))
 			if fileconfig.buildmessage then
 				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. fileconfig.buildmessage, cfg.project.basedir, cfg.project.location))
 			end
-			for _, command in ipairs(fileconfig.buildCommands) do
+			for _, command in ipairs(fileconfig.buildcommands) do
 				_p('  COMMAND %s', os.translateCommandsAndPaths(command, cfg.project.basedir, cfg.project.location))
 			end
-			if filename ~= "" and #fileconfig.buildInputs ~= 0 then
+			if filename ~= "" and #fileconfig.buildinputs ~= 0 then
 				filename = filename .. " "
 			end
-			if filename ~= "" or #fileconfig.buildInputs ~= 0 then
-				_p('  DEPENDS %s', filename .. table.implode(fileconfig.buildInputs,"",""," "))
+			if filename ~= "" or #fileconfig.buildinputs ~= 0 then
+				_p('  DEPENDS %s', filename .. table.implode(fileconfig.buildinputs,"",""," "))
 			end
 			_p(')')
 		end
