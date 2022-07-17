@@ -288,7 +288,7 @@ function m.generate(prj)
 			-- so instead, use add_custom_target to run it before any rule (as obj)
 			_p('add_custom_target(prebuild-%s', prj.name)
 			if cfg.prebuildmessage then
-				local command = os.translateCommandsAndPaths("{ECHO} " .. cfg.prebuildmessage, cfg.project.basedir, cfg.project.location)
+				local command = os.translateCommandsAndPaths("{ECHO} " .. premake.quote(cfg.prebuildmessage), cfg.project.basedir, cfg.project.location)
 				_p('  COMMAND %s', command)
 			end
 			local commands = os.translateCommandsAndPaths(cfg.prebuildcommands, cfg.project.basedir, cfg.project.location)
@@ -302,7 +302,7 @@ function m.generate(prj)
 		if cfg.postbuildmessage or #cfg.postbuildcommands > 0 then
 			_p('add_custom_command(TARGET %s POST_BUILD', prj.name)
 			if cfg.postbuildmessage then
-				local command = os.translateCommandsAndPaths("{ECHO} " .. cfg.postbuildmessage, cfg.project.basedir, cfg.project.location)
+				local command = os.translateCommandsAndPaths("{ECHO} " .. premake.quote(cfg.postbuildmessage), cfg.project.basedir, cfg.project.location)
 				_p('  COMMAND %s', command)
 			end
 			local commands = os.translateCommandsAndPaths(cfg.postbuildcommands, cfg.project.basedir, cfg.project.location)
@@ -319,7 +319,7 @@ function m.generate(prj)
 			end
 			_p('add_custom_command(TARGET OUTPUT %s', table.implode(project.getrelative(cfg.project, fileconfig.buildoutputs),"",""," "))
 			if fileconfig.buildmessage then
-				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. fileconfig.buildmessage, cfg.project.basedir, cfg.project.location))
+				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. premake.quote(fileconfig.buildmessage), cfg.project.basedir, cfg.project.location))
 			end
 			for _, command in ipairs(fileconfig.buildcommands) do
 				_p('  COMMAND %s', os.translateCommandsAndPaths(command, cfg.project.basedir, cfg.project.location))
