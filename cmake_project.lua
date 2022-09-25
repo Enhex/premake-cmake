@@ -317,6 +317,11 @@ function m.generate(prj)
 			if #fileconfig.buildcommands == 0 or #fileconfig.buildoutputs == 0 then
 				return
 			end
+
+			local custom_output_directories = table.unique(table.translate(fileconfig.buildoutputs, function(output) return project.getrelative(cfg.project, path.getdirectory(output)) end))
+			-- Alternative would be to add 'COMMAND ${CMAKE_COMMAND} -E make_directory %s' to below add_custom_command
+			_p('file(MAKE_DIRECTORY %s)', table.implode(custom_output_directories, "", "", " "))
+
 			_p('add_custom_command(TARGET OUTPUT %s', table.implode(project.getrelative(cfg.project, fileconfig.buildoutputs),"",""," "))
 			if fileconfig.buildmessage then
 				_p('  COMMAND %s', os.translateCommandsAndPaths('{ECHO} ' .. premake.quote(fileconfig.buildmessage), cfg.project.basedir, cfg.project.location))
