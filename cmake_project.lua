@@ -118,9 +118,9 @@ function m.generate(prj)
 
 		-- include dirs
 
-		if #cfg.sysincludedirs > 0 then
+		if #cfg.externalincludedirs > 0 then
 			_p('target_include_directories("%s" SYSTEM PRIVATE', prj.name)
-			for _, includedir in ipairs(cfg.sysincludedirs) do
+			for _, includedir in ipairs(cfg.externalincludedirs) do
 				_x(1, '$<$<CONFIG:%s>:%s>', cmake.cfgname(cfg), includedir)
 			end
 			_p(')')
