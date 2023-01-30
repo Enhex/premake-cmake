@@ -202,12 +202,24 @@ function m.generate(prj)
 			all_link_options = all_link_options .. option .. " "
 		end
 
-		if all_link_options ~= "" then
+		if all_link_options ~= "" or cfg.sanitize then
 			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
-			_p(1, 'set_target_properties("%s" PROPERTIES LINK_FLAGS "%s")', prj.name, all_link_options)
+			if all_link_options ~= "" then
+				_p(1, 'set_target_properties("%s" PROPERTIES LINK_FLAGS "%s")', prj.name, all_link_options)
+			end
+			if cfg.sanitize then
+				_p(1, 'if (NOT MSVC)')
+				if table.contains(cfg.sanitize, "Address") then
+					_p(2, 'target_link_options("%s" PRIVATE "-fsanitize=address")', prj.name)
+				end
+				if table.contains(cfg.sanitize, "Fuzzer") then
+					_p(2, 'target_link_options("%s" PRIVATE "-fsanitize=fuzzer")', prj.name)
+				end
+				_p(1, 'endif()')
+			end
 			_p('endif()')
 		end
-		
+
 		if #toolset.getcflags(cfg) > 0 or #toolset.getcxxflags(cfg) > 0 then
 			_p('target_compile_options("%s" PRIVATE', prj.name)
 
