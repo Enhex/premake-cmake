@@ -221,15 +221,25 @@ function m.generate(prj)
 		end
 
 		if #toolset.getcflags(cfg) > 0 or #toolset.getcxxflags(cfg) > 0 then
-			_p('target_compile_options("%s" PRIVATE', prj.name)
-
-			for _, flag in ipairs(toolset.getcflags(cfg)) do
-				_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
+			_p('if (MSVC)')
+			_p(1, 'target_compile_options("%s" PRIVATE', prj.name)
+			for _, flag in ipairs(p.tools.msc.getcflags(cfg)) do
+				_p(2, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
 			end
-			for _, flag in ipairs(toolset.getcxxflags(cfg)) do
-				_p(1, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
+			for _, flag in ipairs(p.tools.msc.getcxxflags(cfg)) do
+				_p(2, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
 			end
-			_p(')')
+			_p(1, ')')
+			_p('else()')
+			_p(1, 'target_compile_options("%s" PRIVATE', prj.name)
+			for _, flag in ipairs(p.tools.gcc.getcflags(cfg)) do
+				_p(2, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:C>>:%s>', cmake.cfgname(cfg), flag)
+			end
+			for _, flag in ipairs(p.tools.gcc.getcxxflags(cfg)) do
+				_p(2, '$<$<AND:$<CONFIG:%s>,$<COMPILE_LANGUAGE:CXX>>:%s>', cmake.cfgname(cfg), flag)
+			end
+			_p(1, ')')
+			_p('endif()')
 		end
 
 		-- C++ standard
