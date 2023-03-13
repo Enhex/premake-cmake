@@ -16,6 +16,7 @@ local p = premake
 local tree = p.tree
 local project = p.project
 local config = p.config
+local fileconfig = p.fileconfig
 local cmake = p.modules.cmake
 
 cmake.project = {}
@@ -231,6 +232,72 @@ function m.generate(prj)
 
 			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
 			_p('target_precompile_headers("%s" PUBLIC %s)', prj.name, pch)
+			_p('endif()')
+		end
+
+		-- process filters for any files with custom build rules
+		for _, file in pairs(cfg.files) do
+
+			local fcfg = fileconfig.new(file, prj)
+
+			if fcfg and fileconfig.hasCustomBuildRule(fcfg) then
+				local prevCmd
+				_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+				_p('add_custom_command(TARGET %s POST_BUILD', prj.name)
+				for _, cmd in pairs(fcfg.buildcommands) do
+					if cmd ~= prevCmd then
+						_p('\tCOMMAND %s', cmd)
+						prevCmd = cmd
+					end
+				end
+				_p('\tWORKING_DIRECTORY %s', cfg._basedir)
+				--_p('\tDEPENDS %s', fcfg.buildoutputs[1])
+				_p(')')
+				_p('endif()')
+			end
+		end
+
+		-- process any prebuild/postbuild/prelink commands
+		-- copied from gmake2_makefile.lua
+		local steps = cfg.postbuildcommands
+		if #steps > 0 then
+			steps = os.translateCommandsAndPaths(steps, cfg.project.basedir, cfg.project.location)
+			_p('')
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			_p('add_custom_command(TARGET %s POST_BUILD', prj.name)
+			for _, value in pairs(steps) do
+				_p('\tCOMMAND %s', value)
+			end
+			_p('\tWORKING_DIRECTORY %s', cfg._basedir)
+			_p('\t)')
+			_p('endif()')
+		end
+
+		steps = cfg.prebuildcommands
+		if #steps > 0 then
+			steps = os.translateCommandsAndPaths(steps, cfg.project.basedir, cfg.project.location)
+			_p('')
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			_p('add_custom_command(TARGET %s PRE_BUILD', prj.name)
+			for _, value in pairs(steps) do
+				_p('\tCOMMAND %s', value)
+			end
+			_p('\tWORKING_DIRECTORY %s', cfg._basedir)
+			_p('\t)')
+			_p('endif()')
+		end
+
+		steps = cfg.prelinkcommands
+		if #steps > 0 then
+			steps = os.translateCommandsAndPaths(steps, cfg.project.basedir, cfg.project.location)
+			_p('')
+			_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+			_p('add_custom_command(TARGET %s PRE_LINK', prj.name)
+			for _, value in pairs(steps) do
+				_p('\tCOMMAND %s', value)
+			end
+			_p('\tWORKING_DIRECTORY %s', cfg._basedir)
+			_p('\t)')
 			_p('endif()')
 		end
 	end
