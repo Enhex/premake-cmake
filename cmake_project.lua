@@ -47,8 +47,10 @@ function m.files(prj)
 				local rule = p.global.getRuleForFile(node.name, prj.rules)
 
 				if p.fileconfig.hasFileSettings(filecfg) then
-					for _, output in ipairs(filecfg.buildoutputs) do
-						_p(1, '"%s"', path.getrelative(prj.workspace.location, output))
+					if filecfg.compilebuildoutputs then
+						for _, output in ipairs(filecfg.buildoutputs) do
+							_p(1, '"%s"', path.getrelative(prj.workspace.location, output))
+						end
 					end
 					break
 				elseif rule then
