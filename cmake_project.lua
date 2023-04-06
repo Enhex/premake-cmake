@@ -355,6 +355,11 @@ function m.generate(prj)
 				_p(2, 'DEPENDS %s', filename .. table.implode(fileconfig.buildinputs,"",""," "))
 			end
 			_p(1, ')')
+			if not fileconfig.compilebuildoutputs then
+				local target_name = 'CUSTOM_TARGET_' .. filename:gsub('/', '_'):gsub('\\', '_')
+				_p(1, 'add_custom_target(%s DEPENDS %s)', target_name, table.implode(project.getrelative(cfg.project, fileconfig.buildoutputs),"",""," "))
+				_p(1, 'add_dependencies(%s %s)', prj.name, target_name)
+			end
 		end
 		local tr = project.getsourcetree(cfg.project)
 		p.tree.traverse(tr, {
