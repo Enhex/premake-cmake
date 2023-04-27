@@ -327,6 +327,19 @@ function m.generate(prj)
 			_p(1, 'add_dependencies(%s prebuild-%s)', prj.name, prj.name)
 		end
 
+		if cfg.prelinkmessage or #cfg.prelinkcommands > 0 then
+			_p(1, 'add_custom_command(TARGET %s PRE_LINK', prj.name)
+			if cfg.prelinkmessage then
+				local command = os.translateCommandsAndPaths("{ECHO} " .. m.quote(cfg.prelinkmessage), cfg.project.basedir, cfg.project.location)
+				_p(2, 'COMMAND %s', command)
+			end
+			local commands = os.translateCommandsAndPaths(cfg.prelinkcommands, cfg.project.basedir, cfg.project.location)
+			for _, command in ipairs(commands) do
+				_p(2, 'COMMAND %s', command)
+			end
+			_p(1, ')')
+		end
+
 		if cfg.postbuildmessage or #cfg.postbuildcommands > 0 then
 			_p(1, 'add_custom_command(TARGET %s POST_BUILD', prj.name)
 			if cfg.postbuildmessage then
