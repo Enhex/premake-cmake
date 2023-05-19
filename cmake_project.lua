@@ -39,6 +39,9 @@ function m.files(prj)
 	tree.traverse(tr, {
 		onleaf = function(node, depth)
 		
+			if node.flags.ExcludeFromBuild then
+				return
+			end
 			_p(1, '"%s"', path.getrelative(prj.workspace.location, node.abspath))
 
 			-- add generated files
