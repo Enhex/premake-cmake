@@ -34,42 +34,51 @@ function m.getcompiler(cfg)
 	return toolset
 end
 
-function m.files(prj)
-	local tr = project.getsourcetree(prj)
-	tree.traverse(tr, {
-		onleaf = function(node, depth)
-		
+function m.generated_files(prj)
+	for cfg in project.eachconfig(prj) do
+		_p('if(CMAKE_BUILD_TYPE STREQUAL %s)', cmake.cfgname(cfg))
+		_p(1, 'set(GENERATED_FILES')
+		table.foreachi(prj._.files, function(node)
 			if node.flags.ExcludeFromBuild then
 				return
 			end
-			_p(1, '"%s"', path.getrelative(prj.workspace.location, node.abspath))
+			local filecfg = p.fileconfig.getconfig(node, cfg)
+			local rule = p.global.getRuleForFile(node.name, prj.rules)
 
-			-- add generated files
-			for cfg in project.eachconfig(prj) do
-				local filecfg = p.fileconfig.getconfig(node, cfg)
-				local rule = p.global.getRuleForFile(node.name, prj.rules)
+			if p.fileconfig.hasFileSettings(filecfg) then
+				if filecfg.compilebuildoutputs then
+					for _, output in ipairs(filecfg.buildoutputs) do
+						_p(2, '"%s"', path.getrelative(prj.workspace.location, output))
+					end
+				end
+			elseif rule then
+				local environ = table.shallowcopy(filecfg.environ)
 
-				if p.fileconfig.hasFileSettings(filecfg) then
-					if filecfg.compilebuildoutputs then
-						for _, output in ipairs(filecfg.buildoutputs) do
-							_p(1, '"%s"', path.getrelative(prj.workspace.location, output))
-						end
-					end
-					break
-				elseif rule then
-					local environ = table.shallowcopy(filecfg.environ)
-
-					if rule.propertydefinition then
-						p.rule.prepareEnvironment(rule, environ, cfg)
-						p.rule.prepareEnvironment(rule, environ, filecfg)
-					end
-					local rulecfg = p.context.extent(rule, environ)
-					for _, output in ipairs(rulecfg.buildoutputs) do
-						_p(1, '"%s"', path.getrelative(prj.workspace.location, output))
-					end
-					break
+				if rule.propertydefinition then
+					p.rule.prepareEnvironment(rule, environ, cfg)
+					p.rule.prepareEnvironment(rule, environ, filecfg)
+				end
+				local rulecfg = p.context.extent(rule, environ)
+				for _, output in ipairs(rulecfg.buildoutputs) do
+					_p(2, '"%s"', path.getrelative(prj.workspace.location, output))
 				end
 			end
+		end)
+		_p(1, ')')
+		_p(0, 'endif()')
+	end
+end
+
+
+function m.files(prj)
+	local tr = project.getsourcetree(prj)
+
+	tree.traverse(tr, {
+		onleaf = function(node, depth)
+			if node.flags.ExcludeFromBuild or node.generated then
+				return
+			end
+			_p(1, '"%s"', path.getrelative(prj.workspace.location, node.abspath))
 		end
 	})
 end
@@ -87,6 +96,9 @@ function m.generate(prj)
 	local oldGetDefaultSeparator = path.getDefaultSeparator
 	path.getDefaultSeparator = function() return "/" end
 
+	if prj.hasGeneratedFiles then
+		m.generated_files(prj)
+	end
 
 	if prj.kind == 'StaticLib' then
 		_p('add_library("%s" STATIC', prj.name)
@@ -99,6 +111,9 @@ function m.generate(prj)
 		_p('add_executable("%s"', prj.name)
 	end
 	m.files(prj)
+	if prj.hasGeneratedFiles then
+		_p(1, '${GENERATED_FILES}')
+	end
 	_p(')')
 
 	for cfg in project.eachconfig(prj) do
