@@ -180,6 +180,14 @@ function m.generate(prj)
 			_p(1, ')')
 		end
 
+		if #cfg.undefines > 0 then
+			_p(1, 'if (MSVC)')
+			_p(2, 'target_compile_options("%s" PRIVATE %s)', prj.name, table.implode(p.tools.msc.getundefines(cfg.undefines), "", "", " "))
+			_p(1, 'else()')
+			_p(2, 'target_compile_options("%s" PRIVATE %s)', prj.name, table.implode(p.tools.gcc.getundefines(cfg.undefines), "", "", " "))
+			_p(1, 'endif()')
+		end
+
 		-- lib dirs
 		if #cfg.libdirs > 0 then
 			_p(1, 'target_link_directories("%s" PRIVATE', prj.name)
