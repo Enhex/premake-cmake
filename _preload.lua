@@ -7,6 +7,7 @@
 --              Manu Evans
 --              Yehonatan Ballas
 --              UndefinedVertex
+--              alchemyyy
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -20,18 +21,26 @@ p.api.register {
 	kind = "string",
 }
 
+local default_toolset_map = {
+	["windows"] = "msc-v143", -- Visual Studio 2022
+	["macosx"] = "clang",
+	["linux"] = "gcc",
+	["_"] = "gcc", -- default
+}
+local default_toolset = default_toolset_map[os.target()] or default_toolset_map["_"]
+
 newaction
 {
 	-- Metadata for the command line and help system
 
 	trigger         = "cmake",
 	shortname       = "CMake",
-	description     = "Generate CMake file",
-	toolset         = "clang",
+	description     = "Generate CMake build files",
+	toolset         = default_toolset,
 
 	-- The capabilities of this action
 
-	valid_kinds     = { "ConsoleApp", "WindowedApp", "Makefile", "SharedLib", "StaticLib", "Utility" },
+	valid_kinds     = { "ConsoleApp", "WindowedApp", "Makefile", "SharedLib", "StaticLib", "Utility", "None", "SharedItems" },
 	valid_languages = { "C", "C++" },
 	valid_tools     = {
 		cc = { "gcc", "clang", "msc" }

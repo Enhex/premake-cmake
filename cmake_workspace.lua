@@ -6,6 +6,7 @@
 --              Manu Evans
 --              Yehonatan Ballas
 --              Joel Linn
+--              alchemyyy
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -86,6 +87,7 @@ function m.generate(wks)
 	p.w()
 
 	p.w('project("%s")', wks.name)
+	p.w()
 
 	--
 	-- Project list
@@ -100,7 +102,13 @@ function m.generate(wks)
 			prjpath = path.getrelative(prj.workspace.location, prjpath)
 			p.w('include(%s)', prjpath)
 		end,
-
-		--TODO wks.startproject
 	})
+
+	-- startproject: set the VS_STARTUP_PROJECT property for Visual Studio generators
+	-- and the default build target for other generators
+	if wks.startproject then
+		p.w()
+		p.w('# Default startup project')
+		p.w('set_property(DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" PROPERTY VS_STARTUP_PROJECT "%s")', wks.startproject)
+	end
 end

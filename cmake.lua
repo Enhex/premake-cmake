@@ -7,6 +7,7 @@
 --              Manu Evans
 --              Jason Perkins
 --              Yehonatan Ballas
+--              alchemyyy
 -- Created:     2013/05/06
 -- Copyright:   (c) 2008-2020 Jason Perkins and the Premake project
 --
@@ -31,18 +32,25 @@ function cmake.generateProject(prj)
     p.eol("\r\n")
     p.indent("  ")
 
-    if project.isc(prj) or project.iscpp(prj) then
+    if project.isc(prj) or project.iscpp(prj) or prj.kind == "Utility" or prj.kind == "None" or prj.kind == "Makefile" or prj.kind == "SharedItems" then
         p.generate(prj, ".cmake", cmake.project.generate)
     end
 end
 
-function cmake.cfgname(cfg)
-    local cfgname = cfg.buildcfg
-    if cmake.workspace.multiplePlatforms then
-        -- CMake breaks if "|" is used here
-        cfgname = string.format("%s-%s", cfg.platform, cfg.buildcfg)
+local function normalize_identifier(name)
+    local res = string.gsub(name, "[^a-zA-Z0-9_]", "_")
+    if res ~= name then
+        premake.warnOnce("cmake_identifier_" .. name, 'configuration "' .. name .. '" contains unsuported characters, replaced by "' .. res .. '"')
     end
-    return cfgname
+    return res
+end
+
+function cmake.cfgname(cfg)
+    if cmake.workspace.multiplePlatforms then
+        return string.format("%s_%s", normalize_identifier(cfg.platform), normalize_identifier(cfg.buildcfg))
+    else
+        return normalize_identifier(cfg.buildcfg)
+    end
 end
 
 function cmake.cleanWorkspace(wks)
